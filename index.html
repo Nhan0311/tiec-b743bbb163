@@ -178,6 +178,21 @@ button:focus-visible{outline:2px solid var(--lagoon);outline-offset:2px}
   body.dock .stepcol .step{scroll-margin-top:calc(var(--dockh,0px) + 12px)}
 }
 .best-view{margin-top:8px;display:inline-block;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);padding:6px 12px;border-radius:10px;font:600 12.5px/1.45 var(--body)}
+.vdock{display:none;position:fixed;z-index:57;right:16px;bottom:74px;width:440px;background:#000;border:2px solid var(--path);box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.vdock.show{display:block}.vdock.small{width:280px}
+.vd-head{display:flex;align-items:center;gap:6px;background:var(--panel);padding:5px 8px;font-size:12px}
+.vd-head b{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--path)}
+.vd-head button{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:5px 11px;font:600 12px var(--body);flex:none;cursor:pointer}
+.vdock video{display:block;width:100%!important;max-height:none!important;min-height:0!important;aspect-ratio:16/9;border-radius:0!important;background:#000}
+@media (max-width:760px){
+  .vdock{top:0;bottom:auto;left:0;right:0;width:auto;border-width:0 0 2px}
+  .vdock.small{width:auto}
+  .vdock.show.small{display:grid;grid-template-columns:44% 1fr;align-items:stretch;background:var(--panel)}
+  .vdock.small #vd-slot{order:1;background:#000}
+  .vdock.small .vd-head{order:2;flex-wrap:wrap;align-content:center;gap:5px;padding:4px 8px}
+  .vdock.small .vd-head b{flex:1 1 100%;white-space:normal;font-size:11.5px;line-height:1.3;max-height:2.6em;overflow:hidden}
+  .vdock.small .vd-head button{padding:4px 9px}
+}
 /* STICKY PLAYER BAR */
 .pbar{position:fixed;bottom:0;left:0;right:0;z-index:60;background:var(--panel);border-top:2px solid var(--path);
   padding:8px 16px;display:flex;align-items:center;gap:10px;box-shadow:0 -4px 20px rgba(0,0,0,.18)}
@@ -238,6 +253,10 @@ footer{font-size:12.5px;color:var(--muted);display:grid;gap:4px;padding-top:16px
   <button class="pbar-btn" id="pbtn-close" title="Dừng hẳn">■</button>
 </div>
 
+<div class="vdock" id="vdock">
+  <div class="vd-head"><b id="vd-t"></b><button id="vd-size" title="Thu nhỏ / phóng to">Thu nhỏ</button><button id="vd-back" title="Về chỗ video trong sơ đồ">↩</button><button id="vd-x" title="Tắt video">✕</button></div>
+  <div id="vd-slot"></div>
+</div>
 <div class="minidock" id="minidock">
   <div class="md-head"><b id="md-t"></b><button id="md-tog">Ẩn sơ đồ ▲</button></div>
   <svg id="md-svg" class="md-svg" role="img" aria-label="Sơ đồ thu nhỏ theo mốc đang chọn"></svg>
@@ -592,11 +611,12 @@ function ui(){
   document.querySelectorAll('.pb[data-id]').forEach(b=>{const on=playing&&b.dataset.id===it.id&&+b.dataset.m===it.m;b.textContent=on?"❚❚":"▶";b.classList.toggle('pb-playing',on);});
   document.querySelectorAll('.mtrack').forEach(r=>r.classList.toggle('mt-live',!!it&&+r.dataset.m===it.m));
   document.querySelectorAll('.song[data-sid]').forEach(c=>{const on=playing&&c.dataset.sid===it.id;c.classList.toggle('playing',on);c.querySelector('.pi').textContent=on?"❚❚":"▶";});
-  const vp=VMODE&&!$('#mainvid').paused;
-  $('#pbtn-pp').textContent=(playing||vp)?"❚❚":"▶";
+  const vp=VMODE&&!$('#mainvid').paused,mv=!$('#mainvid').paused&&!SCR;
+  $('#pbtn-pp').textContent=(playing||vp||mv)?"❚❚":"▶";
   $('#scrbtn').textContent=SCR?"■ Dừng tự chạy":"▶ Tự chạy theo kịch bản";$('#scrbtn').classList.toggle('on',SCR);
   $('#ctl-run').textContent=SCR?"■ Dừng tự chạy":"▶ Tự chạy theo kịch bản";$('#ctl-run').classList.toggle('on',SCR);
-  const bar=Q.length>0||VMODE||SCR;
+  const bar=Q.length>0||VMODE||SCR||mv;
+  if(mv&&!Q.length){const Sv=DAYS[day].steps[cur];$('#pnow-title').textContent="🎬 "+Sv.h;$('#pnow-artist').textContent="Đang phát video demo · bấm ❚❚ để dừng";}
   if(!bar){const St0=DAYS[day].steps[cur],fin=ENDMSG&&cur===DAYS[day].steps.length-1;$('#pnow-title').textContent=fin?"Hết kịch bản":"▶ Bấm để tự chạy theo kịch bản";$('#pnow-artist').textContent=fin?"Bấm ▶ để chạy lại từ mốc đang chọn":`Mốc ${cur+1}/${DAYS[day].steps.length} · ${St0.t} · ${St0.h}`;$('#pprog-fill').style.width="0%";}
   $('#ctl-now').innerHTML=bar?`<b>${esc((playing||vp)?"Đang phát: ":"Tạm dừng: ")}${esc($('#pnow-title').textContent)}</b> · ${esc($('#pnow-artist').textContent)}`:"Bấm ▶ để nghe nhạc + xem video lần lượt theo từng mốc. Hết bài tự sang mốc sau.";
   $('#simbtn').textContent=SIM&&it?"■ Dừng mô phỏng":"▶ Chạy mô phỏng cả buổi";
@@ -630,6 +650,7 @@ aud.addEventListener('ended',()=>{if(SCR){QI++;if(QI<Q.length)loadCur();else scr
 aud.addEventListener('play',ui);aud.addEventListener('pause',ui);
 aud.addEventListener('timeupdate',()=>{$('#pprog-fill').style.width=(aud.duration?aud.currentTime/aud.duration*100:0)+'%';});
 $('#pbtn-pp').onclick=()=>{
+  if(!SCR&&!Q.length&&!$('#mainvid').paused){$('#mainvid').pause();return;}
   if(SCR&&VMODE){const v=$('#mainvid');v.paused?v.play():v.pause();return;}
   if(SCR&&SCR_T){clearTimeout(SCR_T);SCR_T=null;$('#pnow-artist').textContent="Tạm dừng — bấm ⏭ để sang bước tiếp";return;}
   if(!Q.length&&!SCR)return scrToggle();aud.paused?aud.play():aud.pause();};
@@ -658,7 +679,6 @@ function scrStep(i){
     $('#pnow-title').textContent="🎬 "+S.h;
     $('#pnow-artist').textContent=tag+" · hết video sẽ tự sang bước tiếp";
     v.play().catch(()=>{$('#pnow-artist').textContent=tag+" · bấm ▶ để phát video";ui();});
-    if(matchMedia("(max-width:760px)").matches)setTimeout(()=>$('.vpanel').scrollIntoView({behavior:"smooth",block:"start"}),150);
   }else{
     const ids=[...new Set(S.mus.map(([a])=>songIdOf(a)).filter(Boolean))];
     if(ids.length){Q=ids.map(id=>({id,m:midOf(id)}));QI=0;QLOOP=false;loadCur();}
@@ -763,6 +783,7 @@ function updateVideoPanel(){
     vpanel.classList.remove('visible');
     planEl.classList.remove('has-video');
   }
+  dockCheck();
 }
 
 function steps(){
@@ -825,15 +846,36 @@ function syncDock(){
 }
 function ensureStepVisible(){
   const el=document.querySelector(`.step[data-i="${cur}"]`);if(!el)return;
-  const d=$("#minidock"),top=d.classList.contains("show")?d.getBoundingClientRect().bottom:0,bot=$("#pbar").getBoundingClientRect().top,r=el.getBoundingClientRect();
+  const d=$("#minidock"),vd=$("#vdock"),top=Math.max(d.classList.contains("show")?d.getBoundingClientRect().bottom:0,vd.classList.contains("show")&&matchMedia("(max-width:760px)").matches?vd.getBoundingClientRect().bottom:0),bot=$("#pbar").getBoundingClientRect().top,r=el.getBoundingClientRect();
   if(r.top<top+4||r.top>bot-80)el.scrollIntoView({behavior:"smooth",block:"nearest"});
 }
+// ─── VIDEO NỔI (thu nhỏ / phóng to) ─────────────────────────────────────────
+let VD=false,VD_SMALL=false,VD_X=false;
+const vph=document.createElement("div");vph.className="vph";
+function vdock(on){
+  const v=$("#mainvid");if(on===VD)return;VD=on;
+  if(on){vph.style.height=v.offsetHeight+"px";v.parentNode.insertBefore(vph,v);$("#vd-slot").appendChild(v);}
+  else if(vph.parentNode){vph.parentNode.insertBefore(v,vph);vph.remove();}
+  $("#vdock").classList.toggle("show",on);
+}
+function vdockCheck(){
+  const v=$("#mainvid"),vis=$(".vpanel").classList.contains("visible"),a=VD?vph:v,r=a.getBoundingClientRect();
+  const out=r.bottom<60||r.top>innerHeight-80,playing=!v.paused||(SCR&&VMODE);
+  vdock(vis&&out&&!VD_X&&(playing||VD));
+  if(VD){const S=DAYS[day].steps[cur];$("#vd-t").textContent="🎬 "+S.t+" · "+(S.vidlabel||S.h).split(" · ")[0];}
+}
+$("#vd-size").onclick=()=>{VD_SMALL=!VD_SMALL;$("#vdock").classList.toggle("small",VD_SMALL);$("#vd-size").textContent=VD_SMALL?"Phóng to":"Thu nhỏ";dockCheck();};
+$("#vd-back").onclick=()=>{(VD?vph:$("#mainvid")).scrollIntoView({behavior:"smooth",block:"center"});};
+$("#vd-x").onclick=()=>{VD_X=true;$("#mainvid").pause();vdock(false);dockCheck();};
+$("#mainvid").addEventListener("play",()=>{VD_X=false;dockCheck();});
+$("#mainvid").addEventListener("pause",()=>dockCheck());
+
 function dockCheck(){
-  dockRaf=0;
+  dockRaf=0;vdockCheck();
   const mob=matchMedia("(max-width:760px)").matches,pr=$("#plan").getBoundingClientRect(),sr=$(".stepcol").getBoundingClientRect();
-  const show=mob&&pr.bottom<40&&sr.top<innerHeight&&sr.bottom>160,d=$("#minidock");
-  d.classList.toggle("show",show);document.body.classList.toggle("dock",show);
-  document.body.style.setProperty("--dockh",show?d.offsetHeight+"px":"0px");
+  const show=mob&&!VD&&pr.bottom<40&&sr.top<innerHeight&&sr.bottom>160,d=$("#minidock");
+  d.classList.toggle("show",show);const vtop=mob&&VD;document.body.classList.toggle("dock",show||vtop);
+  document.body.style.setProperty("--dockh",show?d.offsetHeight+"px":vtop?$("#vdock").offsetHeight+"px":"0px");
 }
 const planBase=plan;plan=function(){planBase();syncDock();dockCheck();};
 addEventListener("scroll",()=>{if(!dockRaf)dockRaf=requestAnimationFrame(dockCheck);},{passive:true});
