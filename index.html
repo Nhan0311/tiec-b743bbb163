@@ -144,9 +144,42 @@ button:focus-visible{outline:2px solid var(--lagoon);outline-offset:2px}
 .ctl-b:hover{border-color:var(--path)}
 .ctl-now{flex:1 1 100%;font-size:12.5px;color:var(--muted);min-height:1.2em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ctl-now b{color:var(--ink)}
+#scrbtn{display:none}
+.pbar{padding-bottom:max(8px,env(safe-area-inset-bottom,0px))}
+.pnow small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (pointer:coarse){.song.playable{min-height:36px;display:inline-flex;align-items:center;gap:4px}.vg-item{min-height:48px}}
+@media (max-width:760px){
+  .ctl{padding:6px 0 8px;gap:6px}
+  .ctl-now{display:none}
+  .ctl-run{padding:9px 14px;font-size:13.5px}
+  .ctl-b{padding:8px 12px;font-size:13px}
+  .stepcol .step{scroll-margin-top:70px}
+  .pbar{gap:6px;padding:6px 10px;padding-bottom:max(6px,env(safe-area-inset-bottom,0px))}
+  .pbar-btn{font-size:15px;padding:6px 4px}
+  .pbar-pp{width:40px;height:40px}
+  .pprog{position:absolute;top:-2px;left:0;right:0;width:auto;height:3px;border-radius:0;background:transparent}
+  .pprog-fill{border-radius:0}
+  .pnow b{font-size:12.5px}.pnow small{font-size:10.5px}
+  body{padding-bottom:84px}
+  .vpanel{scroll-margin-top:12px}
+}
+.minidock{display:none}
+@media (max-width:760px) and (max-height:640px){.md-svg{max-height:21vh}}
+@media (max-width:760px){
+  .minidock.show{display:block;position:fixed;top:0;left:0;right:0;z-index:55;background:var(--panel);border-bottom:2px solid var(--path);box-shadow:0 4px 16px rgba(0,0,0,.18);padding:4px 12px 6px}
+  .md-head{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;min-height:30px}
+  .md-head b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--path)}
+  #md-tog{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:5px 12px;font:600 12px var(--body);flex:none}
+  .md-svg{display:block;width:100%;height:auto;max-height:26vh}
+  .md-dir{display:flex;justify-content:space-between;font:600 10px var(--body);color:var(--muted);letter-spacing:.04em;margin-top:1px}
+  .md-cap{font-size:12px;line-height:1.4;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .minidock.collapsed .md-svg,.minidock.collapsed .md-cap,.minidock.collapsed .md-dir{display:none}
+  .ctl{position:static}
+  body.dock .stepcol .step{scroll-margin-top:calc(var(--dockh,0px) + 12px)}
+}
 /* STICKY PLAYER BAR */
 .pbar{position:fixed;bottom:0;left:0;right:0;z-index:60;background:var(--panel);border-top:2px solid var(--path);
-  padding:8px 16px;display:none;align-items:center;gap:10px;box-shadow:0 -4px 20px rgba(0,0,0,.18)}
+  padding:8px 16px;display:flex;align-items:center;gap:10px;box-shadow:0 -4px 20px rgba(0,0,0,.18)}
 .pbar-btn{background:none;border:none;cursor:pointer;color:var(--ink);font-size:16px;padding:4px 6px;border-radius:6px}
 .pbar-btn:hover{background:var(--soft)}
 .pbar-pp{width:36px;height:36px;border-radius:50%;background:var(--path);color:#fff;border:none;cursor:pointer;font-size:13px;flex:none}
@@ -196,12 +229,19 @@ footer{font-size:12.5px;color:var(--muted);display:grid;gap:4px;padding-top:16px
 
 <audio id="wed-audio" preload="none"></audio>
 <div class="pbar" id="pbar">
-  <button class="pbar-btn" id="pbtn-prev" title="Bài trước">⏮</button>
+  <button class="pbar-btn" id="pbtn-prev" title="Lùi">⏮</button>
   <button class="pbar-pp" id="pbtn-pp">▶</button>
-  <button class="pbar-btn" id="pbtn-next" title="Bài tiếp">⏭</button>
-  <div class="pnow" id="pnow"><b id="pnow-title">Bấm ▶ ở bài nào để nghe thử 30s</b><small id="pnow-artist">&nbsp;</small></div>
+  <button class="pbar-btn" id="pbtn-next" title="Tiếp">⏭</button>
+  <div class="pnow" id="pnow"><b id="pnow-title">▶ Bấm để tự chạy theo kịch bản</b><small id="pnow-artist">&nbsp;</small></div>
   <div class="pprog" id="pprog"><div class="pprog-fill" id="pprog-fill"></div></div>
-  <button class="pbar-btn" id="pbtn-close" title="Đóng">✕</button>
+  <button class="pbar-btn" id="pbtn-close" title="Dừng hẳn">■</button>
+</div>
+
+<div class="minidock" id="minidock">
+  <div class="md-head"><b id="md-t"></b><button id="md-tog">Ẩn sơ đồ ▲</button></div>
+  <svg id="md-svg" class="md-svg" role="img" aria-label="Sơ đồ thu nhỏ theo mốc đang chọn"></svg>
+  <div class="md-dir"><span>◀ sân khấu</span><span id="md-door">cửa vào ▶</span></div>
+  <div class="md-cap" id="md-cap"></div>
 </div>
 
 <div class="purpose-banner">
@@ -554,7 +594,8 @@ function ui(){
   $('#pbtn-pp').textContent=(playing||vp)?"❚❚":"▶";
   $('#scrbtn').textContent=SCR?"■ Dừng tự chạy":"▶ Tự chạy theo kịch bản";$('#scrbtn').classList.toggle('on',SCR);
   $('#ctl-run').textContent=SCR?"■ Dừng tự chạy":"▶ Tự chạy theo kịch bản";$('#ctl-run').classList.toggle('on',SCR);
-  const bar=$('#pbar').style.display==='flex';
+  const bar=Q.length>0||VMODE||SCR;
+  if(!bar){const St0=DAYS[day].steps[cur],fin=ENDMSG&&cur===DAYS[day].steps.length-1;$('#pnow-title').textContent=fin?"Hết kịch bản":"▶ Bấm để tự chạy theo kịch bản";$('#pnow-artist').textContent=fin?"Bấm ▶ để chạy lại từ mốc đang chọn":`Mốc ${cur+1}/${DAYS[day].steps.length} · ${St0.t} · ${St0.h}`;$('#pprog-fill').style.width="0%";}
   $('#ctl-now').innerHTML=bar?`<b>${esc((playing||vp)?"Đang phát: ":"Tạm dừng: ")}${esc($('#pnow-title').textContent)}</b> · ${esc($('#pnow-artist').textContent)}`:"Bấm ▶ để nghe nhạc + xem video lần lượt theo từng mốc. Hết bài tự sang mốc sau.";
   $('#simbtn').textContent=SIM&&it?"■ Dừng mô phỏng":"▶ Chạy mô phỏng cả buổi";
 }
@@ -582,28 +623,28 @@ function simAll(){
   MUSIC_EU.forEach((x,m)=>{if(x.vol==="auto")return;x.songs.filter(s=>!s.alt).slice(0,x.songs.length>2?1:x.songs.length).forEach(s=>{if(!items.length||items[items.length-1].id!==s.id)items.push({id:s.id,m});});});
   SIM=true;startQueue(items,false);
 }
-function stopAll(){aud.pause();Q=[];QI=-1;SIM=false;$('#pbar').style.display='none';ui();}
+function stopAll(){aud.pause();Q=[];QI=-1;SIM=false;ui();}
 aud.addEventListener('ended',()=>{if(SCR){QI++;if(QI<Q.length)loadCur();else scrNext();return;}QI++;if(QI>=Q.length){if(QLOOP)QI=0;else return stopAll();}loadCur();});
 aud.addEventListener('play',ui);aud.addEventListener('pause',ui);
 aud.addEventListener('timeupdate',()=>{$('#pprog-fill').style.width=(aud.duration?aud.currentTime/aud.duration*100:0)+'%';});
 $('#pbtn-pp').onclick=()=>{
   if(SCR&&VMODE){const v=$('#mainvid');v.paused?v.play():v.pause();return;}
   if(SCR&&SCR_T){clearTimeout(SCR_T);SCR_T=null;$('#pnow-artist').textContent="Tạm dừng — bấm ⏭ để sang bước tiếp";return;}
-  if(!Q.length)return simAll();aud.paused?aud.play():aud.pause();};
+  if(!Q.length&&!SCR)return scrToggle();aud.paused?aud.play():aud.pause();};
 $('#pbtn-next').onclick=()=>{
   if(SCR){if(!VMODE&&QI<Q.length-1){QI++;loadCur();}else scrNext();return;}
-  if(Q.length){QI=(QI+1)%Q.length;loadCur();}};
+  if(Q.length){QI=(QI+1)%Q.length;loadCur();}else $('#next').click();};
 $('#pbtn-prev').onclick=()=>{
   if(SCR){scrStep(Math.max(0,cur-1));return;}
-  if(Q.length){QI=(QI-1+Q.length)%Q.length;loadCur();}};
+  if(Q.length){QI=(QI-1+Q.length)%Q.length;loadCur();}else $('#prev').click();};
 $('#pbtn-close').onclick=()=>{if(SCR)scrStop();else stopAll();};
 
 // ─── TỰ CHẠY THEO KỊCH BẢN ──────────────────────────────────────────────────
-let SCR=false,SCR_T=null,VMODE=false;
+let SCR=false,SCR_T=null,VMODE=false,ENDMSG=false;
 const SCR_WAIT=5;
 function scrToggle(){if(SCR)scrStop();else{SIM=false;SCR=true;scrStep(cur);}}
 function scrStep(i){
-  clearTimeout(SCR_T);SCR_T=null;VMODE=false;
+  ENDMSG=false;clearTimeout(SCR_T);SCR_T=null;VMODE=false;
   const v=$('#mainvid');v.pause();const g=$('#galvid');if(!g.paused)g.pause();
   cur=i;steps();plan();updateVideoPanel();
   const el=document.querySelector(`.step[data-i="${i}"]`);el&&el.scrollIntoView({behavior:"smooth",block:"nearest"});
@@ -611,9 +652,11 @@ function scrStep(i){
   $('#pbar').style.display='flex';
   if(S.vid){
     aud.pause();Q=[];QI=-1;VMODE=true;
-    v.currentTime=0;v.play().catch(()=>{});
+    v.currentTime=0;
     $('#pnow-title').textContent="🎬 "+S.h;
     $('#pnow-artist').textContent=tag+" · hết video sẽ tự sang bước tiếp";
+    v.play().catch(()=>{$('#pnow-artist').textContent=tag+" · bấm ▶ để phát video";ui();});
+    if(matchMedia("(max-width:760px)").matches)setTimeout(()=>$('.vpanel').scrollIntoView({behavior:"smooth",block:"start"}),150);
   }else{
     const ids=[...new Set(S.mus.map(([a])=>songIdOf(a)).filter(Boolean))];
     if(ids.length){Q=ids.map(id=>({id,m:midOf(id)}));QI=0;QLOOP=false;loadCur();}
@@ -626,7 +669,7 @@ function scrStep(i){
   }
   ui();
 }
-function scrNext(){if(cur+1>=DAYS[day].steps.length){scrStop();$('#pbar').style.display='flex';$('#pnow-title').textContent="Hết kịch bản";$('#pnow-artist').textContent="Bấm ▶ Tự chạy theo kịch bản để xem lại từ bước đang chọn";return;}scrStep(cur+1);}
+function scrNext(){if(cur+1>=DAYS[day].steps.length){ENDMSG=true;scrStop();return;}scrStep(cur+1);}
 function scrStop(){SCR=false;VMODE=false;clearTimeout(SCR_T);SCR_T=null;$('#mainvid').pause();stopAll();}
 $('#mainvid').addEventListener('ended',()=>{if(SCR&&VMODE)scrNext();});
 $('#ctl-prev').onclick=()=>{if(SCR)scrStep(Math.max(0,cur-1));else $('#prev').click();};
@@ -725,7 +768,7 @@ function steps(){
   $("#steps").innerHTML=D.steps.map((s,i)=>{const ph=s.ph!==last?`<div class="phase">${esc(s.ph)}</div>`:"";last=s.ph;
     const mus=s.mus.map(([a,b,st])=>{const id=songIdOf(a);return `<span class="song ${st==="ok"?"ok":st==="alt"?"opt":""}${id?" playable":""}"${id?` data-sid="${id}" title="Bấm để nghe thử"`:""}><i class="pi">${id?"▶":"♪"}</i> ${esc(a)}${b?" · "+esc(b):""}${st==="ok"?" ★":""}</span>`;}).join("");
     return `${ph}<button class="step${s.undecided?" und":""}" aria-pressed="${i===cur}" data-i="${i}"><div class="t">${s.t}<small>${i+1}/${D.steps.length}</small></div><div><div class="h">${esc(s.h)}</div>${s.d?`<div class="d">${esc(s.d)}</div>`:""}${mus?`<div class="mus">${mus}</div>`:""}${s.tags.length?`<div class="tags">${s.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join("")}</div>`:""}</div></button>`;}).join("");
-  document.querySelectorAll(".step").forEach(b=>b.onclick=e=>{if(SCR){scrStep(+b.dataset.i);return;}const ch=e.target.closest(".song[data-sid]");cur=+b.dataset.i;steps();plan();updateVideoPanel();if(ch)playSong(ch.dataset.sid,-1);});
+  document.querySelectorAll(".step").forEach(b=>b.onclick=e=>{if(SCR){scrStep(+b.dataset.i);return;}const ch=e.target.closest(".song[data-sid]");cur=+b.dataset.i;steps();plan();updateVideoPanel();ensureStepVisible();if(ch)playSong(ch.dataset.sid,-1);});
   ui();
 }
 
@@ -758,6 +801,42 @@ function render(){
     "Mặt bằng và phân bổ bàn là ước tính theo bản phác tay 18/10/2026. Nhạc: phong cách Châu Âu (Ý · Pháp) — đề xuất của đôi. Video demo nằm trong thư mục videos/ cùng cấp với trang này."
   ].map(x=>`<div>${x}</div>`).join("");
 }
+
+// ─── SƠ ĐỒ THU NHỎ TRÊN ĐIỆN THOẠI ──────────────────────────────────────────
+let DOCK_COLL=false,dockRaf=0;
+function syncDock(){
+  const s=$("#plan"),m=$("#md-svg"),vb=s.viewBox.baseVal,G0=DAYS[day].G,rot=G0.H>G0.W,nw=rot?vb.height:vb.width,nh=rot?vb.width:vb.height;
+  m.setAttribute("viewBox",`0 0 ${nw} ${nh}`);
+  m.innerHTML=rot?`<g transform="translate(0,${vb.width}) rotate(-90)">${s.innerHTML}</g>`:s.innerHTML;
+  const fs=Math.round(11*nw/Math.max(280,Math.min(innerWidth,760)-24));
+  m.querySelectorAll("text").forEach(t=>{
+    const r=t.previousElementSibling;
+    if(r&&r.tagName==="rect"&&r.getAttribute("rx")==="3"){
+      r.remove();const x=t.getAttribute("x"),y=t.getAttribute("y");
+      t.setAttribute("font-size",fs);t.setAttribute("font-weight","700");t.setAttribute("fill",css("--ink"));
+      t.setAttribute("stroke",css("--panel"));t.setAttribute("stroke-width",fs/4);t.setAttribute("paint-order","stroke");
+      if(rot)t.setAttribute("transform",`rotate(90 ${x} ${y})`);
+    }else t.remove();
+  });
+  $("#md-cap").innerHTML=$("#cap").innerHTML;$("#md-door").textContent=rot?"cửa vào ▶":"cửa vào ▼ phía dưới";
+  const S=DAYS[day].steps[cur];$("#md-t").textContent=S.t+" · "+S.h;
+}
+function ensureStepVisible(){
+  const el=document.querySelector(`.step[data-i="${cur}"]`);if(!el)return;
+  const d=$("#minidock"),top=d.classList.contains("show")?d.getBoundingClientRect().bottom:0,bot=$("#pbar").getBoundingClientRect().top,r=el.getBoundingClientRect();
+  if(r.top<top+4||r.top>bot-80)el.scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+function dockCheck(){
+  dockRaf=0;
+  const mob=matchMedia("(max-width:760px)").matches,pr=$("#plan").getBoundingClientRect(),sr=$(".stepcol").getBoundingClientRect();
+  const show=mob&&pr.bottom<40&&sr.top<innerHeight&&sr.bottom>160,d=$("#minidock");
+  d.classList.toggle("show",show);document.body.classList.toggle("dock",show);
+  document.body.style.setProperty("--dockh",show?d.offsetHeight+"px":"0px");
+}
+const planBase=plan;plan=function(){planBase();syncDock();dockCheck();};
+addEventListener("scroll",()=>{if(!dockRaf)dockRaf=requestAnimationFrame(dockCheck);},{passive:true});
+addEventListener("resize",dockCheck);
+$("#md-tog").onclick=()=>{DOCK_COLL=!DOCK_COLL;$("#minidock").classList.toggle("collapsed",DOCK_COLL);$("#md-tog").textContent=DOCK_COLL?"Hiện sơ đồ ▼":"Ẩn sơ đồ ▲";dockCheck();};
 
 const GAL=[
   {src:"videos/ch1-hanh-trinh-demo.mp4",t:"CH.1 · Hành Trình Tìm Nhau",d:"Mở màn 11:50 (20/12) · 11:30 (26/12) · đèn tắt, loa lớn, MC im lặng"},
